@@ -3,162 +3,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ thống Tra cứu Cây xanh Toàn diện - T9</title>
+    <title>Hệ thống Tra cứu Cây xanh T9 - Toàn diện</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
-        :root { --primary: #1b5e20; --accent: #2e7d32; --bg: #f1f5f9; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg); margin: 0; padding: 20px; color: #1e293b; }
-        .container { max-width: 100%; margin: auto; background: #ffffff; padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        :root { --primary: #1b5e20; --bg: #f8fafc; --text: #334155; --accent: #2e7d32; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: var(--text); }
+        .container { max-width: 1600px; margin: auto; background: #ffffff; padding: 25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         
-        .header { text-align: center; margin-bottom: 30px; }
-        .header h1 { color: var(--primary); margin: 0; font-size: 26px; text-transform: uppercase; letter-spacing: 1px; }
-        
-        .status-badge { display: inline-flex; align-items: center; padding: 10px 20px; border-radius: 50px; font-size: 14px; font-weight: 600; margin-bottom: 20px; transition: 0.3s; }
-        .loading { background: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; }
-        .ready { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+        .header { text-align: center; border-bottom: 2px solid #edf2f7; margin-bottom: 25px; padding-bottom: 15px; }
+        .header h1 { color: var(--primary); margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 1px; }
 
-        .search-box { display: flex; gap: 15px; background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 25px; align-items: center; }
-        .search-box input { flex: 1; padding: 14px 20px; border: 2px solid #cbd5e0; border-radius: 8px; font-size: 16px; outline: none; transition: 0.2s; }
-        .search-box input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(46, 125, 50, 0.1); }
+        .status-box { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 12px; border-radius: 10px; font-size: 14px; margin-bottom: 20px; font-weight: 500; }
+        .loading { background: #fff7ed; color: #ea580c; border: 1px solid #ffedd5; }
+        .success { background: #f0fdf4; color: #166534; border: 1px solid #dcfce7; }
+        .error { background: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; }
+
+        .search-container { background: #f1f5f9; padding: 20px; border-radius: 12px; margin-bottom: 25px; }
+        .search-grid { display: flex; gap: 15px; align-items: center; }
+        .search-info { font-size: 13px; color: #64748b; margin-top: 10px; }
+
+        input { flex: 1; padding: 14px; border: 1px solid #cbd5e0; border-radius: 8px; outline: none; font-size: 16px; transition: 0.3s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
+        input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15); }
         
-        .btn { padding: 14px 28px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 15px; transition: 0.2s; display: flex; align-items: center; gap: 8px; }
-        .btn-search { background: var(--primary); color: white; }
-        .btn-search:hover { background: #144317; transform: translateY(-1px); }
-        .btn-search:disabled { background: #94a3b8; cursor: not-allowed; }
-        
-        .table-wrapper { overflow-x: auto; max-height: 700px; border: 1px solid #e2e8f0; border-radius: 12px; background: white; }
-        table { width: 100%; border-collapse: collapse; min-width: 2800px; } /* Đảm bảo đủ rộng cho 22+ cột */
+        button { padding: 14px 30px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700; transition: 0.2s; white-space: nowrap; }
+        button:hover { background: #144317; transform: translateY(-1px); }
+        button:disabled { background: #94a3b8; cursor: not-allowed; }
+
+        .table-resizer { overflow-x: auto; max-height: 700px; border: 1px solid #e2e8f0; border-radius: 10px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; min-width: 2500px; background: white; }
         th { background: var(--primary); color: white; position: sticky; top: 0; padding: 15px; font-size: 13px; text-align: left; z-index: 10; white-space: nowrap; }
-        td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; font-size: 13.5px; white-space: nowrap; }
-        tr:hover { background: #f0fdf4; }
-        tr:nth-child(even) { background: #fafafa; }
-
-        .highlight { background: #fef08a; color: #854d0e; padding: 2px 4px; border-radius: 4px; font-weight: bold; }
-        .no-result { text-align: center; padding: 60px; color: #ef4444; font-weight: bold; font-size: 16px; }
-        .tip { font-size: 12px; color: #64748b; margin-top: 8px; }
+        td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; font-size: 13px; white-space: nowrap; }
+        tr:hover { background: #f0fdf4; transition: 0.1s; }
+        tr:nth-child(even) { background: #fcfcfc; }
+        
+        .highlight { background: #fef08a; padding: 2px 4px; border-radius: 4px; font-weight: bold; color: #854d0e; }
+        .no-results { text-align: center; padding: 60px; color: #94a3b8; font-style: italic; font-size: 16px; }
+        
+        /* Cuộn ngang mượt mà cho bảng */
+        .table-resizer::-webkit-scrollbar { height: 8px; width: 8px; }
+        .table-resizer::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <h1>Hệ Thống Tra Cứu Cây Xanh Toàn Diện</h1>
-        <div id="status" class="status-badge loading">🔄 Đang đồng bộ dữ liệu từ Google Sheets...</div>
+        <h1>Hệ Thống Quản Lý Chi Tiết Cây Xanh T9</h1>
     </div>
 
-    <div class="search-box">
-        <input type="text" id="searchInput" placeholder="Nhập bất kỳ thông tin nào (Tên đường, loài cây, số hiệu, phường, ghi chú...)" onkeyup="if(event.keyCode===13) performGlobalSearch()">
-        <button id="searchBtn" class="btn btn-search" onclick="performGlobalSearch()" disabled>🔍 Tìm kiếm</button>
-        <button class="btn" style="background:#64748b; color:white;" onclick="location.reload()">🔄 Làm mới</button>
+    <div id="status" class="status-box loading">
+        <span>🔄 Đang kết nối dữ liệu trực tuyến (47k dòng)...</span>
     </div>
 
-    <div class="table-wrapper">
-        <table id="resultTable">
+    <div class="search-container">
+        <div class="search-grid">
+            <input type="text" id="searchInput" placeholder="Nhập tên cây, tên đường, phường, số cây, địa chỉ..." disabled onkeyup="if(event.keyCode===13) performSearch()">
+            <button id="searchBtn" onclick="performSearch()" disabled>Tìm Kiếm</button>
+            <button style="background: #64748b;" onclick="location.reload()">Làm Mới</button>
+        </div>
+        <div class="search-info">
+            💡 <b>Mẹo:</b> Hệ thống sẽ tự động tra cứu trên tất cả các cột để tìm kiếm thông tin chính xác nhất.
+        </div>
+    </div>
+
+    <div class="table-resizer">
+        <table id="mainTable">
             <thead id="tableHead"></thead>
             <tbody id="tableBody">
-                <tr><td colspan="25" style="text-align:center; padding:100px; color:#94a3b8;">Hệ thống đang tải dữ liệu. Vui lòng đợi trong giây lát...</td></tr>
+                <tr><td colspan="22" style="text-align:center; padding: 100px; color: #94a3b8;">Vui lòng chờ dữ liệu được nạp hoàn tất...</td></tr>
             </tbody>
         </table>
     </div>
-    <p class="tip">* Mẹo: Bạn có thể tìm theo mã số, loài cây hoặc ngày tháng (VD: "Sao đen", "An Khánh", "T9/2024")</p>
 </div>
 
 <script>
-    // Link dữ liệu CSV trực tuyến từ Google Sheets của bạn
-    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHzB1J4YZQeBZt-LpVGJDwdOwauzcxklhhNzOTgmxUsiKR_zdpr6qs28yLUnAG_MfWAshhe3eFG9W/pub?gid=195844642&single=true&output=csv';
+    const DATA_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHzB1J4YZQeBZt-LpVGJDwdOwauzcxklhhNzOTgmxUsiKR_zdpr6qs28yLUnAG_MfWAshhe3eFG9W/pub?gid=195844642&single=true&output=csv';
 
-    let fullDatabase = [];
-    let tableHeaders = [];
+    let db = [];
+    let headers = [];
 
-    // Khởi tạo tải dữ liệu
-    async function initData() {
-        const statusEl = document.getElementById('status');
+    async function loadData() {
+        const status = document.getElementById('status');
         try {
-            const response = await fetch(CSV_URL);
-            if (!response.ok) throw new Error("Kết nối bị chặn");
-            
-            const csvText = await response.text();
-            
-            Papa.parse(csvText, {
+            // Sử dụng PapaParse download trực tiếp để xử lý dữ liệu CSV lớn tối ưu hơn
+            Papa.parse(DATA_URL, {
+                download: true,
                 skipEmptyLines: true,
                 complete: function(results) {
-                    fullDatabase = results.data;
-                    tableHeaders = fullDatabase[0];
-                    
-                    // Render tiêu đề bảng
-                    const thead = document.getElementById('tableHead');
-                    thead.innerHTML = `<tr>${tableHeaders.map(h => `<th>${h || ''}</th>`).join('')}</tr>`;
-                    
-                    // Cập nhật giao diện
-                    statusEl.innerText = `✅ Dữ liệu sẵn sàng: ${(fullDatabase.length - 1).toLocaleString()} dòng`;
-                    statusEl.className = 'status-badge ready';
-                    document.getElementById('searchBtn').disabled = false;
-                    
-                    // Hiện 30 dòng đầu tiên làm mẫu
-                    displayResults(fullDatabase.slice(1, 31));
+                    db = results.data;
+                    headers = db[0];
+                    setupInterface();
+                    status.innerHTML = `✅ Kết nối thành công! Đã nạp <b>${(db.length - 1).toLocaleString()}</b> dòng dữ liệu.`;
+                    status.className = 'status-box success';
+                },
+                error: function(err) {
+                    throw new Error("Không thể tải dữ liệu từ Google Sheets.");
                 }
             });
-        } catch (error) {
-            statusEl.innerText = "❌ Lỗi kết nối! Hãy thử tải lại trang hoặc kiểm tra link Google Sheets.";
-            statusEl.className = 'status-badge loading';
-            statusEl.style.color = "red";
+        } catch (err) {
+            status.innerHTML = `❌ Lỗi: ${err.message} <br> <small>Hãy kiểm tra lại kết nối mạng hoặc link chia sẻ.</small>`;
+            status.className = 'status-box error';
         }
     }
 
-    function performGlobalSearch() {
+    function setupInterface() {
+        // Khởi tạo tiêu đề bảng dựa trên dữ liệu thực tế
+        const thead = document.getElementById('tableHead');
+        thead.innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
+
+        // Kích hoạt các nút chức năng
+        const input = document.getElementById('searchInput');
+        const btn = document.getElementById('searchBtn');
+        input.disabled = false;
+        btn.disabled = false;
+        input.focus();
+        
+        // Hiển thị 30 dòng dữ liệu đầu tiên mặc định
+        renderTable(db.slice(1, 31));
+    }
+
+    function performSearch() {
         const query = document.getElementById('searchInput').value.toLowerCase().trim();
         const tbody = document.getElementById('tableBody');
-        
+
         if (!query) {
-            displayResults(fullDatabase.slice(1, 51));
+            renderTable(db.slice(1, 51));
             return;
         }
 
-        tbody.innerHTML = `<tr><td colspan="${tableHeaders.length}" style="text-align:center; padding:50px;">Đang quét toàn bộ dữ liệu...</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${headers.length}" style="text-align:center; padding:50px;">🔍 Đang lọc dữ liệu...</td></tr>`;
 
-        // Logic tra cứu trên TẤT CẢ các cột
-        const filtered = fullDatabase.slice(1).filter(row => {
-            // Kiểm tra xem có bất kỳ ô nào trong hàng chứa từ khóa tìm kiếm hay không
+        // Cơ chế tra cứu toàn diện trên mọi cột
+        // Ưu tiên tìm kiếm tên cây (cột 10), đường (cột 8), phường (cột 6), số cây (cột 11), địa chỉ (cột 5)
+        const filtered = db.slice(1).filter(row => {
             return row.some(cell => cell && cell.toString().toLowerCase().includes(query));
         });
 
-        displayResults(filtered, query);
+        renderTable(filtered, query);
     }
 
-    function displayResults(rows, keyword = "") {
+    function renderTable(data, highlight = "") {
         const tbody = document.getElementById('tableBody');
-        if (rows.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="${tableHeaders.length}" class="no-result">Kết quả không có trong dữ liệu tra cứu.</td></tr>`;
+        tbody.innerHTML = "";
+
+        if (data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="${headers.length}" class="no-results">❌ Không tìm thấy kết quả nào khớp với từ khóa của bạn.</td></tr>`;
             return;
         }
 
-        const limit = 500; // Giới hạn hiển thị 500 dòng để mượt mà
-        let html = "";
-        
-        rows.slice(0, limit).forEach(row => {
-            html += '<tr>';
+        // Giới hạn hiển thị 500 dòng để đảm bảo trình duyệt không bị treo khi dữ liệu khớp quá nhiều
+        const limit = 500; 
+        const displayData = data.slice(0, limit);
+
+        displayData.forEach(row => {
+            const tr = document.createElement('tr');
             row.forEach(cell => {
-                let cellValue = cell || "";
-                // Highlight từ khóa nếu tìm thấy
-                if (keyword && cellValue.toString().toLowerCase().includes(keyword)) {
-                    const regex = new RegExp(`(${keyword})`, 'gi');
-                    cellValue = cellValue.toString().replace(regex, `<span class="highlight">$1</span>`);
+                const td = document.createElement('td');
+                let text = cell || "";
+                if (highlight && text.toLowerCase().includes(highlight)) {
+                    // Highlight từ khóa tìm thấy
+                    const regex = new RegExp(`(${highlight})`, 'gi');
+                    text = text.replace(regex, `<span class="highlight">$1</span>`);
                 }
-                html += `<td>${cellValue}</td>`;
+                td.innerHTML = text;
+                tr.appendChild(td);
             });
-            html += '</tr>';
+            tbody.appendChild(tr);
         });
 
-        if (rows.length > limit) {
-            html += `<tr><td colspan="${tableHeaders.length}" style="text-align:center; background:#fff7ed; padding:15px; font-weight:bold;">⚠️ Tìm thấy ${rows.length.toLocaleString()} kết quả. Chỉ hiển thị 500 dòng đầu tiên. Hãy nhập chi tiết hơn để lọc.</td></tr>`;
+        if (data.length > limit) {
+            const warningRow = document.createElement('tr');
+            warningRow.innerHTML = `<td colspan="${headers.length}" style="text-align:center; background:#fff3e0; font-weight:bold; padding:15px; color:#9a3412;">⚠️ Tìm thấy ${data.length.toLocaleString()} kết quả. Chỉ hiển thị 500 dòng đầu tiên để tối ưu tốc độ. Vui lòng nhập từ khóa chi tiết hơn.</td>`;
+            tbody.appendChild(warningRow);
         }
-
-        tbody.innerHTML = html;
     }
 
-    // Chạy tải dữ liệu khi mở file
-    initData();
+    loadData();
 </script>
-
 </body>
 </html>
