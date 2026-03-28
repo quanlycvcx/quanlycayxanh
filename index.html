@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tra cứu Cây xanh T9 - Hệ thống Trực tuyến</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        :root { --primary: #1b5e20; --bg: #f8fafc; --text: #334155; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: var(--text); }
+        .container { max-width: 1400px; margin: auto; background: #ffffff; padding: 20px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        
+        .header { text-align: center; border-bottom: 2px solid #e2e8f0; margin-bottom: 20px; padding-bottom: 10px; }
+        .header h1 { color: var(--primary); margin: 0; font-size: 22px; }
+
+        .status-box { display: flex; align-items: center; gap: 10px; padding: 10px 15px; border-radius: 8px; font-size: 14px; margin-bottom: 20px; border: 1px solid transparent; }
+        .loading { background: #fff7ed; color: #ea580c; border-color: #ffedd5; }
+        .success { background: #f0fdf4; color: #166534; border-color: #dcfce7; }
+        .error { background: #fef2f2; color: #dc2626; border-color: #fee2e2; }
+
+        .search-grid { display: grid; grid-template-columns: 200px 1fr auto; gap: 10px; margin-bottom: 20px; }
+        select, input { padding: 12px; border: 1px solid #cbd5e0; border-radius: 6px; outline: none; transition: 0.2s; }
+        input:focus { border-color: var(--primary); ring: 2px var(--primary); }
+        
+        button { padding: 12px 24px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        button:hover { opacity: 0.9; }
+
+        .table-resizer { overflow-x: auto; max-height: 600px; border: 1px solid #e2e8f0; border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; min-width: 2000px; }
+        th { background: var(--primary); color: white; position: sticky; top: 0; padding: 12px; font-size: 13px; text-align: left; z-index: 5; }
+        td { padding: 10px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+        tr:hover { background: #f8fafc; }
+        .highlight { background: #fef08a; padding: 2px; border-radius: 2px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>HỆ THỐNG QUẢN LÝ CHI TIẾT CÂY XANH T9</h1>
+    </div>
+
+    <div id="status" class="status-box loading">
+        <span>🔄 Đang kết nối dữ liệu trực tuyến (47k dòng)...</span>
+    </div>
+
+    <div class="search-grid">
+        <select id="colSelect"><option value="ALL">Tất cả các cột</option></select>
+        <input type="text" id="searchInput" placeholder="Nhập nội dung cần tìm (Ví dụ: Sao đen, An Khánh...)" disabled>
+        <button id="searchBtn" onclick="performSearch()" disabled>Tìm kiếm</button>
+    </div>
+
+    <div class="table-resizer">
+        <table id="mainTable">
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const DATA_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHzB1J4YZQeBZt-LpVGJDwdOwauzcxklhhNzOTgmxUsiKR_zdpr6qs28yLUnAG_MfWAshhe3eFG9W/pub?gid=195844642&single=true&output=csv';
+
+    let db = [];
+    let headers = [];
+
+    // Tải dữ liệu
+    async function loadData() {
+        const status = document.getElementById('status');
+        try {
+            // Sử dụng Proxy để tránh lỗi CORS nếu chạy local
+            const response = await fetch(DATA_URL);
+            if (!response.ok) throw new Error("Không thể tải dữ liệu.");
+            
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder('utf-8');
+            let result = '';
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                result += decoder.decode(value, { stream: true });
+            }
+
+            Papa.parse(result, {
+                skipEmptyLines: true,
+                complete: function(results) {
+                    db = results.data;
+                    headers = db[0];
+                    setupInterface();
+                    status.innerHTML = `✅ Kết nối thành công! Tổng số: <b>${(db.length - 1).toLocaleString()}</b> cây xanh.`;
+                    status.className = 'status-box success';
+                }
+            });
+
+        } catch (err) {
+            status.innerHTML = `❌ Lỗi kết nối: ${err.message} <br> <small>Gợi ý: Hãy thử mở bằng Firefox hoặc đưa file lên GitHub Pages.</small>`;
+            status.className = 'status-box error';
+        }
+    }
+
+    function setupInterface() {
+        // Build Headers
+        const thead = document.getElementById('tableHead');
+        thead.innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
+
+        // Build Dropdown
+        const select = document.getElementById('colSelect');
+        headers.forEach((h, i) => {
+            if(h) select.innerHTML += `<option value="${i}">${h}</option>`;
+        });
+
+        // Kích hoạt ô nhập liệu
+        document.getElementById('searchInput').disabled = false;
+        document.getElementById('searchBtn').disabled = false;
+        
+        // Hiện 20 dòng mẫu
+        renderTable(db.slice(1, 21));
+    }
+
+    function performSearch() {
+        const colIdx = document.getElementById('colSelect').value;
+        const query = document.getElementById('searchInput').value.toLowerCase().trim();
+        const tbody = document.getElementById('tableBody');
+
+        if (!query) {
+            renderTable(db.slice(1, 51));
+            return;
+        }
+
+        const filtered = db.slice(1).filter(row => {
+            if (colIdx === "ALL") {
+                return row.some(cell => cell && cell.toString().toLowerCase().includes(query));
+            } else {
+                const cell = row[parseInt(colIdx)];
+                return cell && cell.toString().toLowerCase().includes(query);
+            }
+        });
+
+        renderTable(filtered, query);
+    }
+
+    function renderTable(data, highlight = "") {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = "";
+
+        if (data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="${headers.length}" style="text-align:center; padding:50px; color:red;">Không tìm thấy kết quả nào.</td></tr>`;
+            return;
+        }
+
+        const limit = 300; // Giới hạn hiển thị 300 dòng để mượt
+        data.slice(0, limit).forEach(row => {
+            const tr = document.createElement('tr');
+            row.forEach(cell => {
+                const td = document.createElement('td');
+                let text = cell || "";
+                if (highlight && text.toLowerCase().includes(highlight)) {
+                    const regex = new RegExp(`(${highlight})`, 'gi');
+                    text = text.replace(regex, `<span class="highlight">$1</span>`);
+                }
+                td.innerHTML = text;
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+        });
+    }
+
+    loadData();
+</script>
+</body>
+</html>
