@@ -3,83 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Quản lý Cây xanh T9</title>
+    <title>Hệ thống Quản lý Cây xanh T9 - Dashboard Thống kê</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Thư viện hiển thị nhãn trên biểu đồ tròn -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <style>
-        :root { --primary: #1b5e20; --accent: #2e7d32; --bg: #f0f2f5; --text: #334155; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); margin: 0; padding: 15px; color: var(--text); }
+        :root { --primary: #1b5e20; --secondary: #2e7d32; --bg: #f4f7f6; --text: #2c3e50; --white: #ffffff; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); margin: 0; padding: 20px; color: var(--text); }
         
-        .dashboard-container { display: flex; gap: 20px; }
-        
-        /* Cột trái: Bộ lọc */
-        .sidebar { flex: 0 0 300px; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        .sidebar h2 { color: var(--primary); font-size: 20px; text-transform: uppercase; margin-top: 0; margin-bottom: 20px; }
-        .status-badge { display: block; padding: 8px; border-radius: 8px; text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 20px; }
-        .loading { background: #fff3e0; color: #ef6c00; border: 1px solid #ffe0b2; }
-        .ready { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
-        
-        .filter-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
-        .filter-group label { font-weight: bold; font-size: 13px; color: var(--primary); }
-        input { padding: 10px; border: 1px solid #cbd5e0; border-radius: 6px; font-size: 14px; }
-        
-        .btn-group { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
-        button { padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn-search { background: var(--primary); color: white; font-size: 16px; }
-        .btn-reset { background: #64748b; color: white; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
+        .layout { display: grid; grid-template-columns: 320px 1fr; gap: 25px; max-width: 1700px; margin: auto; }
 
-        /* Cột phải: Biểu đồ & Bảng */
-        .main-content { flex: 1; display: flex; flex-direction: column; gap: 20px; }
+        /* Sidebar Filters */
+        .sidebar { background: var(--white); padding: 30px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); height: fit-content; position: sticky; top: 20px; }
+        .sidebar h2 { color: var(--primary); font-size: 18px; text-transform: uppercase; margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 15px; margin-bottom: 25px; }
+        .filter-group { margin-bottom: 18px; }
+        .filter-group label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 8px; color: #64748b; }
+        input { width: 100%; padding: 12px; border: 1.5px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; font-size: 14px; transition: 0.3s; }
+        input:focus { border-color: var(--secondary); outline: none; box-shadow: 0 0 0 4px rgba(46, 125, 50, 0.1); }
         
-        .chart-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
-        .chart-box { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; }
-        .chart-box h3 { color: var(--accent); margin-top: 0; margin-bottom: 15px; font-size: 16px; text-transform: uppercase; }
-        
-        canvas { max-height: 250px; } /* Giới hạn chiều cao biểu đồ */
+        .btn-search { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: 0.3s; }
+        .btn-search:hover { background: #144317; transform: translateY(-2px); }
+        .btn-reset { width: 100%; background: none; color: #94a3b8; border: none; margin-top: 15px; cursor: pointer; font-size: 13px; text-decoration: underline; }
 
-        .table-area { background: white; padding: 10px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        .table-resizer { overflow-x: auto; max-height: 500px; border-radius: 8px; border: 1px solid #e2e8f0; }
-        table { width: 100%; border-collapse: collapse; min-width: 2500px; }
-        th { background: var(--primary); color: white; position: sticky; top: 0; padding: 12px; text-align: left; font-size: 13px; z-index: 5; }
-        td { padding: 10px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-        tr:hover { background: #f0fdf4; }
-        
-        .result-info { padding: 10px 15px; font-size: 14px; color: #64748b; border-bottom: 1px solid #edf2f7; }
+        /* Main Dashboard */
+        .main-content { display: flex; flex-direction: column; gap: 25px; }
+
+        /* KPI Cards */
+        .kpi-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .kpi-card { background: var(--white); padding: 20px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); display: flex; flex-direction: column; align-items: center; border-left: 5px solid var(--primary); }
+        .kpi-card span { font-size: 13px; color: #64748b; font-weight: 600; text-transform: uppercase; }
+        .kpi-card b { font-size: 28px; color: var(--primary); margin-top: 5px; }
+
+        /* Statistics Row */
+        .stats-row { display: grid; grid-template-columns: 450px 1fr; gap: 25px; }
+        .glass-card { background: var(--white); padding: 25px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .glass-card h3 { margin-top: 0; font-size: 16px; color: var(--primary); text-transform: uppercase; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px; margin-bottom: 20px; }
+
+        /* Thống kê Table */
+        .summary-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .summary-table th { text-align: left; padding: 12px; color: #64748b; border-bottom: 2px solid #f1f5f9; }
+        .summary-table td { padding: 12px; border-bottom: 1px solid #f8fafc; }
+        .badge-count { background: #e8f5e9; color: var(--primary); padding: 4px 10px; border-radius: 6px; font-weight: bold; }
+
+        /* Data Table */
+        .table-area { background: var(--white); padding: 20px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); overflow: hidden; }
+        .table-resizer { overflow-x: auto; max-height: 500px; border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; min-width: 2000px; }
+        th { background: #f8fafc; color: #64748b; position: sticky; top: 0; padding: 15px; text-align: left; font-size: 12px; border-bottom: 2px solid #eee; z-index: 5; }
+        td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+        tr:hover { background: #fdfdfd; }
+
+        #pieChart { max-height: 300px; width: 100% !important; }
     </style>
 </head>
 <body>
 
-<div class="dashboard-container">
+<div class="layout">
+    <!-- Cột trái: Bộ lọc -->
     <aside class="sidebar">
-        <h2>Tra cứu T9</h2>
-        <div id="status" class="status-badge loading">🔄 Đang nạp dữ liệu...</div>
+        <h2>Bộ lọc tìm kiếm</h2>
+        <div id="status" style="font-size: 12px; margin-bottom: 20px; color: #ef6c00;">🔄 Đang tải dữ liệu...</div>
         
-        <div class="filter-group"><label>1. Phường</label><input type="text" id="filterPhuong" placeholder="Nhập phường..."></div>
-        <div class="filter-group"><label>2. Tên đường</label><input type="text" id="filterDuong" placeholder="Nhập tên đường..."></div>
-        <div class="filter-group"><label>3. Tên cây</label><input type="text" id="filterLoai" placeholder="Nhập loài cây..."></div>
-        <div class="filter-group"><label>4. Số cây / Số hiệu</label><input type="text" id="filterSoHieu" placeholder="Nhập số hiệu..."></div>
+        <div class="filter-group"><label>Phường</label><input type="text" id="filterPhuong" placeholder="Vd: An Khánh..."></div>
+        <div class="filter-group"><label>Tên đường</label><input type="text" id="filterDuong" placeholder="Vd: Trần Não..."></div>
+        <div class="filter-group"><label>Tên cây</label><input type="text" id="filterLoai" placeholder="Vd: Sao đen..."></div>
+        <div class="filter-group"><label>Số hiệu cây</label><input type="text" id="filterSoHieu" placeholder="Nhập số hiệu..."></div>
         
-        <div class="btn-group">
-            <button id="searchBtn" class="btn-search" onclick="performFilter()" disabled>TÌM KIẾM</button>
-            <button class="btn-reset" onclick="resetFilters()">LÀM MỚI</button>
-        </div>
+        <button id="searchBtn" class="btn-search" onclick="performFilter()" disabled>TRA CỨU DỮ LIỆU</button>
+        <button class="btn-reset" onclick="resetFilters()">Đặt lại bộ lọc</button>
     </aside>
     
+    <!-- Cột phải: Dashboard -->
     <main class="main-content">
-        <div class="chart-row">
-            <div class="chart-box">
-                <h3>Tỷ lệ các loài cây</h3>
+        <!-- KPI Cards -->
+        <div class="kpi-row">
+            <div class="kpi-card"><span>Tổng số cây</span><b id="kpiTotal">0</b></div>
+            <div class="kpi-card"><span>Số loài cây</span><b id="kpiSpecies">0</b></div>
+            <div class="kpi-card"><span>Tuyến đường</span><b id="kpiStreets">0</b></div>
+        </div>
+
+        <!-- Charts & Stats -->
+        <div class="stats-row">
+            <div class="glass-card">
+                <h3>Tỉ lệ cơ cấu loài cây (%)</h3>
                 <canvas id="pieChart"></canvas>
             </div>
-            <div class="chart-box">
-                <h3>So sánh theo Phường / Đường</h3>
-                <canvas id="barChart"></canvas>
+            <div class="glass-card">
+                <h3>Bảng tổng hợp phân bố (Top 10)</h3>
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th>Tên Đường / Khu vực</th>
+                            <th>Số lượng cây</th>
+                            <th>Tỉ trọng</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summaryBody">
+                        <tr><td colspan="3" style="text-align:center; color:#94a3b8; padding:40px;">Chưa có dữ liệu thống kê</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
         
+        <!-- Full Table -->
         <div class="table-area">
-            <div id="resultInfo" class="result-info">Hệ thống đang sẵn sàng.</div>
             <div class="table-resizer">
                 <table id="mainTable">
                     <thead id="tableHead"></thead>
@@ -94,139 +122,124 @@
     const DATA_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHzB1J4YZQeBZt-LpVGJDwdOwauzcxklhhNzOTgmxUsiKR_zdpr6qs28yLUnAG_MfWAshhe3eFG9W/pub?gid=195844642&single=true&output=csv';
     let db = [];
     let headers = [];
-    let pieChart, barChart;
+    let pieChart;
 
-    // Khởi chạy khi nạp trang
+    Chart.register(ChartDataLabels); // Đăng ký plugin hiển thị nhãn
+
     window.onload = function() {
         Papa.parse(DATA_URL, {
             download: true, skipEmptyLines: true,
             complete: function(results) {
                 db = results.data;
                 headers = db[0];
-                setupInterface();
-                document.getElementById('status').innerText = `✅ Đã kết nối: ${(db.length - 1).toLocaleString()} dòng`;
-                document.getElementById('status').className = 'status-badge ready';
+                document.getElementById('tableHead').innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
+                document.getElementById('status').innerHTML = "✅ Dữ liệu trực tuyến đã sẵn sàng";
                 document.getElementById('searchBtn').disabled = false;
-                renderTable(db.slice(1, 21)); // Hiện mẫu 20 dòng
-            },
-            error: function() {
-                document.getElementById('status').innerText = "❌ Lỗi kết nối dữ liệu!";
-                document.getElementById('status').className = 'status-badge loading';
+                
+                // Khởi tạo mặc định
+                performFilter(); 
             }
         });
     };
 
-    function setupInterface() {
-        // Build tiêu đề bảng
-        document.getElementById('tableHead').innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
-    }
-
     function performFilter() {
-        const queryPhuong = document.getElementById('filterPhuong').value.toLowerCase().trim();
-        const queryDuong = document.getElementById('filterDuong').value.toLowerCase().trim();
-        const queryLoai = document.getElementById('filterLoai').value.toLowerCase().trim();
-        const querySoHieu = document.getElementById('filterSoHieu').value.toLowerCase().trim();
+        const qPhuong = document.getElementById('filterPhuong').value.toLowerCase().trim();
+        const qDuong = document.getElementById('filterDuong').value.toLowerCase().trim();
+        const qLoai = document.getElementById('filterLoai').value.toLowerCase().trim();
+        const qSoHieu = document.getElementById('filterSoHieu').value.toLowerCase().trim();
 
         const filtered = db.slice(1).filter(row => {
-            const matchPhuong = !queryPhuong || (row[6] && row[6].toLowerCase().includes(queryPhuong));
-            const matchDuong = !queryDuong || (row[8] && row[8].toLowerCase().includes(queryDuong));
-            const matchLoai = !queryLoai || (row[10] && row[10].toLowerCase().includes(queryLoai));
-            const matchSoHieu = !querySoHieu || (row[11] && row[11].toLowerCase().includes(querySoHieu));
-            return matchPhuong && matchDuong && matchLoai && matchSoHieu;
+            return (!qPhuong || (row[6] && row[6].toLowerCase().includes(qPhuong))) &&
+                   (!qDuong || (row[8] && row[8].toLowerCase().includes(qDuong))) &&
+                   (!qLoai || (row[10] && row[10].toLowerCase().includes(qLoai))) &&
+                   (!qSoHieu || (row[11] && row[11].toLowerCase().includes(qSoHieu)));
         });
 
-        document.getElementById('resultInfo').innerText = `Tìm thấy ${filtered.length.toLocaleString()} kết quả.`;
+        updateKPIs(filtered);
+        updateSummaryTable(filtered);
+        updatePieChart(filtered);
         renderTable(filtered);
-        drawCharts(filtered);
     }
 
-    function renderTable(data) {
-        const tbody = document.getElementById('tableBody');
-        tbody.innerHTML = "";
-        
-        if (data.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="${headers.length}" style="text-align:center; padding:50px; color:red; font-weight:bold;">❌ Không tìm thấy dữ liệu phù hợp.</td></tr>`;
-            return;
-        }
-
-        const limit = 500;
-        data.slice(0, limit).forEach(row => {
-            const tr = document.createElement('tr');
-            row.forEach(cell => tr.innerHTML += `<td>${cell || ''}</td>`);
-            tbody.appendChild(tr);
-        });
-
-        if (data.length > limit) {
-            tbody.innerHTML += `<tr><td colspan="${headers.length}" style="text-align:center; background:#fff3e0; padding:10px; font-weight:bold;">⚠️ Chỉ hiển thị 500 / ${data.length.toLocaleString()} kết quả.</td></tr>`;
-        }
+    function updateKPIs(data) {
+        document.getElementById('kpiTotal').innerText = data.length.toLocaleString();
+        const species = new Set(data.map(r => r[10])).size;
+        const streets = new Set(data.map(r => r[8])).size;
+        document.getElementById('kpiSpecies').innerText = species;
+        document.getElementById('kpiStreets').innerText = streets;
     }
 
-    // --- LOGIC VẼ BIỂU ĐỒ ---
-    function drawCharts(data) {
-        if (!data || data.length === 0) {
-            if (pieChart) pieChart.destroy();
-            if (barChart) barChart.destroy();
-            return;
-        }
-
-        // 1. Thống kê theo Loài cây (Cột 10) cho Pie Chart
-        const loaiCounts = {};
+    function updateSummaryTable(data) {
+        const counts = {};
         data.forEach(row => {
-            const val = row[10] || "Chưa xác định";
-            loaiCounts[val] = (loaiCounts[val] || 0) + 1;
+            const key = row[8] || "Khác";
+            counts[key] = (counts[key] || 0) + 1;
         });
-        const sortedLoai = Object.entries(loaiCounts).sort((a,b) => b[1] - a[1]).slice(0, 5); // Top 5 loài
 
-        // 2. Thống kê theo Đường (Cột 8) hoặc Phường (Cột 6) cho Bar Chart
-        // Nếu người dùng nhập phường, so sánh theo đường. Nếu không, so sánh theo phường.
-        const queryPhuong = document.getElementById('filterPhuong').value.trim();
-        const compareIdx = queryPhuong ? 8 : 6;
-        const compareCounts = {};
+        const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 10);
+        const tbody = document.getElementById('summaryBody');
+        tbody.innerHTML = sorted.map(([name, count]) => {
+            const percent = ((count / data.length) * 100).toFixed(1);
+            return `<tr>
+                <td><b>${name}</b></td>
+                <td><span class="badge-count">${count} cây</span></td>
+                <td style="color:#64748b">${percent}%</td>
+            </tr>`;
+        }).join('');
+    }
+
+    function updatePieChart(data) {
+        const counts = {};
         data.forEach(row => {
-            const val = row[compareIdx] || "N/A";
-            compareCounts[val] = (compareCounts[val] || 0) + 1;
+            const val = row[10] || "Khác";
+            counts[val] = (counts[val] || 0) + 1;
         });
-        const sortedCompare = Object.entries(compareCounts).sort((a,b) => b[1] - a[1]).slice(0, 8); // Top 8 
 
-        // 3. Khởi tạo / Cập nhật Pie Chart
-        const ctxPie = document.getElementById('pieChart').getContext('2d');
+        const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]).slice(0, 6);
+        const labels = sorted.map(d => d[0]);
+        const values = sorted.map(d => d[1]);
+
         if (pieChart) pieChart.destroy();
-        pieChart = new Chart(ctxPie, {
+        const ctx = document.getElementById('pieChart').getContext('2d');
+        pieChart = new Chart(ctx, {
             type: 'pie',
             data: {
-                labels: sortedLoai.map(d => d[0]),
-                datasets: [{ data: sortedLoai.map(d => d[1]), backgroundColor: ['#2e7d32', '#66bb6a', '#a5d6a7', '#ffcc80', '#e0e0e0'] }]
-            },
-            options: { plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 10 } } } } }
-        });
-
-        // 4. Khởi tạo / Cập nhật Bar Chart
-        const ctxBar = document.getElementById('barChart').getContext('2d');
-        if (barChart) barChart.destroy();
-        barChart = new Chart(ctxBar, {
-            type: 'bar',
-            data: {
-                labels: sortedCompare.map(d => d[0].length > 15 ? d[0].substring(0, 15)+'...' : d[0]), // Rút gọn tên dài
-                datasets: [{ label: 'Số lượng cây', data: sortedCompare.map(d => d[1]), backgroundColor: '#1b5e20' }]
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: ['#1b5e20', '#388e3c', '#66bb6a', '#81c784', '#a5d6a7', '#f1f8e9']
+                }]
             },
             options: {
-                scales: {
-                    x: { ticks: { font: { size: 9 } } },
-                    y: { beginAtZero: true, ticks: { font: { size: 10 } } }
-                },
-                plugins: { legend: { display: false } } // Ẩn legend để gọn
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+                    datalabels: {
+                        color: '#fff',
+                        font: { weight: 'bold', size: 10 },
+                        formatter: (value, ctx) => {
+                            let sum = 0;
+                            let dataArr = ctx.chart.data.datasets[0].data;
+                            dataArr.map(data => { sum += data; });
+                            return ((value * 100) / sum).toFixed(1) + "%";
+                        }
+                    }
+                }
             }
         });
     }
 
+    function renderTable(data) {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = data.slice(0, 500).map(row => 
+            `<tr>${row.map(cell => `<td>${cell || ''}</td>`).join('')}</tr>`
+        ).join('');
+    }
+
     function resetFilters() {
-        document.getElementById('filterPhuong').value = "";
-        document.getElementById('filterDuong').value = "";
-        document.getElementById('filterLoai').value = "";
-        document.getElementById('filterSoHieu').value = "";
-        renderTable(db.slice(1, 21));
-        if (pieChart) pieChart.destroy();
-        if (barChart) barChart.destroy();
+        document.querySelectorAll('.sidebar input').forEach(i => i.value = "");
+        performFilter();
     }
 </script>
 
